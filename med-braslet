@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Медичний Браслет</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7ff;
+      color: #333;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #0055ff;
+    }
+    form {
+      max-width: 400px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    input, select, textarea, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .sos {
+      background-color: red;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Медичний Браслет</h1>
+<form id="profileForm">
+  <input type="text" id="name" placeholder="Ім’я">
+  <input type="text" id="surname" placeholder="Прізвище">
+  <input type="date" id="birthdate" placeholder="Дата народження">
+  <input type="text" id="blood" placeholder="Група крові">
+  <textarea id="allergy" placeholder="Алергії"></textarea>
+  <textarea id="diseases" placeholder="Хвороби"></textarea>
+  <textarea id="meds" placeholder="Ліки, які приймає"></textarea>
+  <input type="text" id="contacts" placeholder="Контактні номери (через кому)">
+  <button type="button" onclick="saveData()">Зберегти</button>
+</form>
+
+<div id="profile" style="display:none;">
+  <h2>Профіль користувача</h2>
+  <p id="pData"></p>
+  <button class="sos" onclick="callSOS()">SOS</button>
+</div>
+
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBMU2VUabVcXge6fw0_COv2rClMEiwwklw",
+    authDomain: "med-braslet.firebaseapp.com",
+    databaseURL: "https://med-braslet-default-rtdb.firebaseio.com",
+    projectId: "med-braslet",
+    storageBucket: "med-braslet.firebasestorage.app",
+    messagingSenderId: "446417631259",
+    appId: "1:446417631259:web:20f95822e062990e6da0be",
+    measurementId: "G-95KSG4YBB2"
+  };
+
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  function saveData() {
+    const profile = {
+      name: document.getElementById("name").value,
+      surname: document.getElementById("surname").value,
+      birthdate: document.getElementById("birthdate").value,
+      blood: document.getElementById("blood").value,
+      allergy: document.getElementById("allergy").value,
+      diseases: document.getElementById("diseases").value,
+      meds: document.getElementById("meds").value,
+      contacts: document.getElementById("contacts").value.split(",")
+    };
+
+    const newRef = db.ref('profiles').push();
+    newRef.set(profile);
+
+    document.getElementById("profileForm").style.display = "none";
+    document.getElementById("profile").style.display = "block";
+    document.getElementById("pData").innerHTML = `
+      <b>Ім’я:</b> ${profile.name} ${profile.surname}<br>
+      <b>Дата народження:</b> ${profile.birthdate}<br>
+      <b>Група крові:</b> ${profile.blood}<br>
+      <b>Алергії:</b> ${profile.allergy}<br>
+      <b>Хвороби:</b> ${profile.diseases}<br>
+      <b>Ліки:</b> ${profile.meds}<br>
+      <b>Контакти:</b> ${profile.contacts.join(", ")}
+    `;
+  }
+
+  function callSOS() {
+    const contacts = document.getElementById("pData").innerHTML.match(/\+?\d+/g);
+    if (contacts && contacts.length > 0) {
+      const confirmed = confirm("Зателефонувати на " + contacts[0] + "?");
+      if (confirmed) {
+        window.location.href = "tel:" + contacts[0];
+      }
+    } else {
+      alert("Номер не знайдено");
+    }
+  }
+</script>
+
+</body>
+</html>
