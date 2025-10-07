@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Медичний Профіль</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<style>
+body { font-family: 'Roboto', sans-serif; margin:0; padding:0; background:#fff; color:#b71c1c; }
+h1,h2,h3 { text-align:center; color:#b71c1c; }
+.container { max-width:500px; margin:20px auto; padding:20px; background:#fff0f0; border:2px solid #b71c1c; border-radius:15px; box-shadow:0 0 15px rgba(183,28,28,0.3); }
+label { font-weight:bold; display:block; margin-top:10px; }
+input, select { width:100%; padding:10px; margin:5px 0; border-radius:8px; border:1px solid #b71c1c; font-size:16px; }
+button { width:100%; padding:12px; margin-top:10px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; transition:0.3s; }
+button:hover { opacity:0.8; }
+#saveBtn { background:#b71c1c; color:white; }
+#addContactBtn { background:#e53935; color:white; }
+.profile { margin-top:20px; padding:20px; border-radius:15px; border:2px solid #b71c1c; background:#fff0f0; box-shadow:0 0 15px rgba(183,28,28,0.3); }
+#sosBtn { background:#d32f2f; color:white; font-size:28px; padding:15px; margin-top:10px; border-radius:15px; animation: pulse 1s infinite; }
+@keyframes pulse { 0% { box-shadow:0 0 10px #d32f2f; } 50% { box-shadow:0 0 25px #ff1744; } 100% { box-shadow:0 0 10px #d32f2f; } }
+.sosContact { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:5px; }
+.sosContact input, .sosContact select { flex:1; }
+footer { margin-top:20px; font-size:14px; color:#b71c1c; text-align:center; }
+</style>
+</head>
+<body>
+
+<h1>❤️ Медичний Профіль</h1>
+
+<div class="container">
+  <label>Мова:</label>
+  <select id="language">
+    <option value="uk">Українська</option>
+    <option value="en">English</option>
+  </select>
+
+  <label>Прізвище:</label>
+  <input type="text" id="surname">
+
+  <label>Ім'я:</label>
+  <input type="text" id="name">
+
+  <label>Група крові:</label>
+  <select id="bloodGroup"></select>
+
+  <label>Rh-фактор:</label>
+  <select id="rhFactor"></select>
+
+  <label>Алергії:</label>
+  <input type="text" id="allergy">
+
+  <label>Хронічні хвороби:</label>
+  <input type="text" id="disease">
+
+  <label>Адреса (необов’язково):</label>
+  <input type="text" id="address">
+
+  <label>Категорія віку:</label>
+  <select id="ageCategory"></select>
+
+  <h3>📞 Контакти SOS</h3>
+  <div id="sosContacts"></div>
+  <button id="addContactBtn">Додати ще контакт</button>
+
+  <button id="saveBtn">Зберегти профіль</button>
+</div>
+
+<div class="profile" id="profileDisplay">
+  <h2>❤️ Ваш профіль:</h2>
+  <div id="displayText">Профіль ще не створено</div>
+  <button id="sosBtn">SOS</button>
+</div>
+
+<footer>Сайт створено за допомогою компанії «Воздухани»</footer>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBMU2VUabVcXge6fw0_COv2rClMEiwwklw",
+    authDomain: "med-braslet.firebaseapp.com",
+    projectId: "med-braslet",
+    storageBucket: "med-braslet.firebasestorage.app",
+    messagingSenderId: "446417631259",
+    appId: "1:446417631259:web:20f95822e062990e6da0be",
+    measurementId: "G-95KSG4YBB2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  document.addEventListener("DOMContentLoaded", async function() {
+    let language = 'uk';
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id') || "default_user";
+
+    const translations = {
+      uk:{bloodOptions:["Виберіть групу крові","І (0)","ІІ (A)","ІІІ (B)","IV (AB)"],rhOptions:["Виберіть Rh","+","-"],ageOptions:["Виберіть категорію віку","Неповнолітній","Повнолітній","Літня людина"],relationOptions:["Мама","Тато","Брат","Сестра","Бабуся","Дідусь","Тітка","Дядько"],addContactBtn:"Додати ще контакт",saveBtn:"Зберегти профіль",sosBtn:"SOS",profileTitle:"Ваш профіль:",address:"Адреса (необов’язково)",allergy:"Алергії",disease:"Хронічні хвороби",surname:"Прізвище",name:"Ім'я",sosTitle:"Контакти SOS",bloodType:"Група крові",ageCategory:"Категорія віку"},
+      en:{bloodOptions:["Select Blood Type","I (0)","II (A)","III (B)","IV (AB)"],rhOptions:["Select Rh","+","-"],ageOptions:["Select Age Category","Minor","Adult","Elderly"],relationOptions:["Mom","Dad","Brother","Sister","Grandma","Grandpa","Aunt","Uncle"],addContactBtn:"Add Another Contact",saveBtn:"Save Profile",sosBtn:"SOS",profileTitle:"Your Profile:",address:"Address (optional)",allergy:"Allergies",disease:"Chronic Diseases",surname:"Surname",name:"Name",sosTitle:"SOS Contacts",bloodType:"Blood Type",ageCategory:"Age Category"}
+    };
+
+    const bloodGroup = document.getElementById('bloodGroup');
+    const rhFactor = document.getElementById('rhFactor');
+    const ageCategory = document.getElementById('ageCategory');
+    const sosContacts = document.getElementById('sosContacts');
+
+    function populateSelect(select, options){
+      select.innerHTML="";
+      options.forEach((opt,i)=>{let option=document.createElement('option');option.text=opt;option.value=i===0?"":opt;if(i===0) option.disabled=true;select.add(option);});
+    }
+
+    function addContact(nameVal="", relationVal="", phoneVal=""){
+      const t = translations[language];
+      const div=document.createElement('div');
+      div.className='sosContact';
+      div.innerHTML=`<input type="text" class="sosName" placeholder="${t.name}" value="${nameVal}">
+        <select class="sosRelation"></select>
+        <input type="text" class="sosPhone" placeholder="Телефон" value="${phoneVal}">`;
+      sosContacts.appendChild(div);
+      const select = div.querySelector('.sosRelation');
+      populateSelect(select, translations[language].relationOptions);
+      if(relationVal) select.value = relationVal;
+    }
+
+    function updateLanguage(){
+      const t = translations[language];
+      populateSelect(bloodGroup,t.bloodOptions);
+      populateSelect(rhFactor,t.rhOptions);
+      populateSelect(ageCategory,t.ageOptions);
+      document.getElementById('addContactBtn').innerText=t.addContactBtn;
+      document.getElementById('saveBtn').innerText=t.saveBtn;
+      document.getElementById('sosBtn').innerText=t.sosBtn;
+      document.querySelectorAll('.sosName').forEach(el=>el.placeholder=t.name);
+      document.querySelectorAll('.sosPhone').forEach(el=>el.placeholder=language==='uk'?"Телефон":"Phone");
+      document.querySelectorAll('.sosRelation').forEach(el=>populateSelect(el,t.relationOptions));
+    }
+
+    async function saveProfile(){
+      const profile = {
+        surname: document.getElementById('surname').value,
+        name: document.getElementById('name').value,
+        blood: bloodGroup.value,
+        rh: rhFactor.value,
+        allergy: document.getElementById('allergy').value,
+        disease: document.getElementById('disease').value,
+        address: document.getElementById('address').value,
+        ageCategory: ageCategory.value,
+        sos:[]
+      };
+      const names=document.querySelectorAll('.sosName');
+      const relations=document.querySelectorAll('.sosRelation');
+      const phones=document.querySelectorAll('.sosPhone');
+      for(let i=0;i<names.length;i++){
+        if(names[i].value && phones[i].value){profile.sos.push({name:names[i].value,relation:relations[i].value,phone:phones[i].value});}
+      }
+      await setDoc(doc(db,"users",userId), profile);
+      displayProfile();
+    }
+
+    async function displayProfile(){
+      const t = translations[language];
+      const docSnap = await getDoc(doc(db,"users",userId));
+      if(!docSnap.exists()) return;
+      const profile = docSnap.data();
+      let bloodText=profile.blood && profile.rh?profile.blood+" "+profile.rh:"";
+      let addressText=profile.address?`<strong>${t.address}:</strong> ${profile.address}<br>`:"";
+      let sosText=profile.sos.map(c=>`${c.name} (${c.relation}) - ${c.phone}`).join('<br>')||(language==='uk'?'Немає':'None');
+      document.getElementById('displayText').innerHTML=`<strong>${t.surname}:</strong> ${profile.surname}<br><strong>${t.name}:</strong> ${profile.name}<br><strong>${t.bloodType}:</strong> ${bloodText}<br><strong>${t.allergy}:</strong> ${profile.allergy}<br><strong>${t.disease}:</strong> ${profile.disease}<br><strong>${t.ageCategory}:</strong> ${profile.ageCategory}<br>${addressText}<strong>${t.sosTitle}:</strong><br>${sosText}`;
+    }
+
+    function sendSOS(){
+      const names=document.querySelectorAll('.sosName');
+      const phones=document.querySelectorAll('.sosPhone');
+      let numbers = [];
+      for(let i=0;i<names.length;i++){
+        if(phones[i].value) numbers.push(phones[i].value);
+      }
+      if(numbers.length===0){alert(language==='uk'?"Додайте контакти SOS!":"Add SOS contacts!");return;}
+      if(confirm(language==='uk'?"Дзвінок на всі контакти SOS?":"Call all SOS contacts?")){
+        numbers.forEach(num=>window.location.href=`tel:${num}`);
+      }
+    }
+
+    document.getElementById('language').addEventListener('change',function(){language=this.value; updateLanguage(); displayProfile();});
+    document.getElementById('addContactBtn').addEventListener('click',()=>addContact());
+    document.getElementById('saveBtn').addEventListener('click',saveProfile);
+    document.getElementById('sosBtn').addEventListener('click',sendSOS);
+
+    updateLanguage();
+    addContact();
+    displayProfile();
+  });
+</script>
+</body>
+</html>
